@@ -1,4 +1,4 @@
-package main.kotlin.com.example.moodjournal
+package com.example.moodjournal
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
