@@ -110,4 +110,38 @@ open class MoodJournalControllerIT @Autowired constructor(
         mockMvc.perform(get("/api/mood/999"))
             .andExpect(status().isNotFound)
     }
+
+    @Test
+    fun `should return mood summary`() {
+        val entryRequest1 = MoodEntryRequest(
+            moodLevel = 5,
+            tags = listOf("happy"),
+            comment = "Feeling great"
+        )
+        val entryRequest2 = MoodEntryRequest(
+            moodLevel = 3,
+            tags = listOf("neutral"),
+            comment = "Just okay"
+        )
+
+        mockMvc.perform(
+            post("/api/mood")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(entryRequest1))
+        )
+            .andExpect(status().isOk)
+
+        mockMvc.perform(
+            post("/api/mood")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(entryRequest2))
+        )
+            .andExpect(status().isOk)
+
+        mockMvc.perform(get("/api/mood/summary"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.averageMoodLevel", `is`(4)))
+            .andExpect(jsonPath("$.mostFrequentTags", hasSize<Any>(2)))
+            .andExpect(jsonPath("$.entriesThisWeek", `is`(2)))
+    }
 }

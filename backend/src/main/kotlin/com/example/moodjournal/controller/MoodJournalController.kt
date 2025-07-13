@@ -2,6 +2,7 @@ package com.example.moodjournal.controller
 
 import com.example.moodjournal.dto.MoodEntryRequest
 import com.example.moodjournal.dto.MoodEntryResponse
+import com.example.moodjournal.dto.MoodSummaryResponse
 import com.example.moodjournal.service.MoodJournalService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -30,4 +31,10 @@ class MoodJournalController(
     fun getById(@PathVariable id: Long): ResponseEntity<MoodEntryResponse> =
         service.getMoodEntryById(id)?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
+
+    @GetMapping("/summary")
+    fun getSummary(): ResponseEntity<MoodSummaryResponse> {
+        val summary = service.getMoodSummary()
+        return ResponseEntity.ok(summary)
+    }
 }
