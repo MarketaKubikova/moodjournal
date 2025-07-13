@@ -1,27 +1,49 @@
 package com.example.moodjournal.service
 
-import com.example.moodjournal.model.MoodEntry
+import com.example.moodjournal.dto.MoodEntryRequest
+import com.example.moodjournal.entity.MoodEntry
+import com.example.moodjournal.repository.MoodRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mock
+import org.mockito.Mockito
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mockito.junit.jupiter.MockitoExtension
+import java.util.Optional
 
-class MoodJournalServiceTest {
-    private val service = MoodJournalService()
+@ExtendWith(MockitoExtension::class)
+class MoodJournalServiceTest(
+    @Mock
+    private val repository: MoodRepository
+) {
+    private val service = MoodJournalService(repository)
 
     @Test
     fun addEntry() {
         val entry = MoodEntry(
-            id = 0L,
+            id = 1L,
             moodLevel = 5,
             tags = listOf("happy"),
             comment = "Feeling great"
         )
 
-        val savedEntry = service.addEntry(entry)
+        Mockito.`when`(repository.save(any())).thenReturn(entry)
 
-        assertNotNull(savedEntry.id)
+        val savedEntry = service.addEntry(MoodEntryRequest(
+            moodLevel = 5,
+            tags = listOf("happy"),
+            comment = "Feeling great"
+        ))
+
+        assertEquals(1L, savedEntry.id)
         assertEquals(5, savedEntry.moodLevel)
         assertEquals(listOf("happy"), savedEntry.tags)
         assertEquals("Feeling great", savedEntry.comment)
+        assertNotNull(savedEntry.timestamp)
+        verify(repository, times(1)).save(any(MoodEntry::class.java))
     }
 
     @Test
@@ -39,37 +61,42 @@ class MoodJournalServiceTest {
             comment = "Feeling pumped"
         )
 
-        service.addEntry(entry1)
-        service.addEntry(entry2)
+        Mockito.`when`(repository.findAll()).thenReturn(listOf(entry1, entry2))
 
         val allEntries = service.getAllMoodEntries()
 
         assertEquals(2, allEntries.size)
         assertTrue(allEntries.any { it.moodLevel == 3 && it.comment == "Just okay" })
         assertTrue(allEntries.any { it.moodLevel == 7 && it.comment == "Feeling pumped" })
+        verify(repository, times(1)).findAll()
     }
 
     @Test
     fun getMoodEntryById_moodEntryFound_shouldReturnMoodEntry() {
         val entry = MoodEntry(
-            id = 0L,
+            id = 1L,
             moodLevel = 4,
             tags = listOf("content"),
             comment = "Feeling content"
         )
 
-        val savedEntry = service.addEntry(entry)
-        val foundEntry = service.getMoodEntryById(savedEntry.id)
+        Mockito.`when`(repository.findById(1L)).thenReturn(Optional.of(entry))
 
-        assertNotNull(foundEntry)
+        val foundEntry = service.getMoodEntryById(1L)
+
         assertEquals(1L, foundEntry?.id)
         assertEquals(4, foundEntry?.moodLevel)
         assertEquals("Feeling content", foundEntry?.comment)
+        verify(repository, times(1)).findById(1L)
     }
 
     @Test
     fun getMoodEntryById_moodEntryNotFound_shouldReturnNull() {
+        Mockito.`when`(repository.findById(999L)).thenReturn(Optional.empty())
+
         val foundEntry = service.getMoodEntryById(999L)
+
         assertNull(foundEntry)
+        verify(repository, times(1)).findById(999L)
     }
 }

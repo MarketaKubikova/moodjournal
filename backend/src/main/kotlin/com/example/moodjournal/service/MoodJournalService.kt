@@ -1,22 +1,58 @@
 package com.example.moodjournal.service
 
-import com.example.moodjournal.model.MoodEntry
+import com.example.moodjournal.dto.MoodEntryRequest
+import com.example.moodjournal.dto.MoodEntryResponse
+import com.example.moodjournal.entity.MoodEntry
+import com.example.moodjournal.repository.MoodRepository
 import org.springframework.stereotype.Service
-import java.util.concurrent.atomic.AtomicLong
 
 @Service
-class MoodJournalService {
-    private val entries = mutableListOf<MoodEntry>()
-    private val idCounter = AtomicLong(1)
+class MoodJournalService(
+    private val moodRepository: MoodRepository
+) {
+    fun addEntry(request: MoodEntryRequest): MoodEntryResponse {
+        val moodEntry = MoodEntry(
+            0L,
+            request.moodLevel,
+            request.tags,
+            request.comment
+        )
+        val savedMoodEntry = moodRepository.save(moodEntry)
 
-    fun addEntry(entry: MoodEntry): MoodEntry {
-        val withId = entry.copy(id = idCounter.getAndIncrement())
-        entries.add(withId)
-
-        return withId
+        return MoodEntryResponse(
+            savedMoodEntry.id,
+            savedMoodEntry.moodLevel,
+            savedMoodEntry.tags,
+            savedMoodEntry.comment,
+            savedMoodEntry.timestamp
+        )
     }
 
-    fun getAllMoodEntries(): List<MoodEntry> = entries.toList()
+    fun getAllMoodEntries(): List<MoodEntryResponse> {
+        val entries = moodRepository.findAll()
 
-    fun getMoodEntryById(id: Long): MoodEntry? = entries.find { it.id == id }
+        return entries.map { entry ->
+            MoodEntryResponse(
+                id = entry.id,
+                moodLevel = entry.moodLevel,
+                tags = entry.tags,
+                comment = entry.comment,
+                timestamp = entry.timestamp
+            )
+        }
+    }
+
+    fun getMoodEntryById(id: Long): MoodEntryResponse? {
+        val foundEntry = moodRepository.findById(id)
+
+        return foundEntry.map { entry ->
+            MoodEntryResponse(
+                id = entry.id,
+                moodLevel = entry.moodLevel,
+                tags = entry.tags,
+                comment = entry.comment,
+                timestamp = entry.timestamp
+            )
+        }.orElse(null)
+    }
 }

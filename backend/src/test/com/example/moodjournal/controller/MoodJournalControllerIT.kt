@@ -1,34 +1,37 @@
 package com.example.moodjournal.controller
 
-import com.example.moodjournal.model.MoodEntry
+import com.example.moodjournal.dto.MoodEntryRequest
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.transaction.Transactional
 import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class MoodJournalControllerIT @Autowired constructor(
+@Transactional
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+open class MoodJournalControllerIT @Autowired constructor(
     val mockMvc: MockMvc,
     val objectMapper: ObjectMapper
 ) {
 
     @Test
     fun `should add mood entry`() {
-        val entry = MoodEntry(
-            id = 0L,
+        val request = MoodEntryRequest(
             moodLevel = 9,
             tags = listOf("excited"),
             comment = "Big news today"
         )
 
-        val json = objectMapper.writeValueAsString(entry)
+        val json = objectMapper.writeValueAsString(request)
 
         mockMvc.perform(
             post("/api/mood")
@@ -36,20 +39,19 @@ class MoodJournalControllerIT @Autowired constructor(
                 .content(json)
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.id", `is`(3)))
             .andExpect(jsonPath("$.moodLevel", `is`(9)))
+            .andExpect(jsonPath("$.tags", hasSize<Any>(1)))
+            .andExpect(jsonPath("$.comment", `is`("Big news today")))
     }
 
     @Test
     fun `should retrieve all mood entries`() {
-        val entry1 = MoodEntry(
-            id = 0L,
+        val entryRequest1 = MoodEntryRequest(
             moodLevel = 3,
             tags = listOf("neutral"),
             comment = "Just okay"
         )
-        val entry2 = MoodEntry(
-            id = 1L,
+        val entryRequest2 = MoodEntryRequest(
             moodLevel = 7,
             tags = listOf("excited"),
             comment = "Feeling pumped"
@@ -58,14 +60,14 @@ class MoodJournalControllerIT @Autowired constructor(
         mockMvc.perform(
             post("/api/mood")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(entry1))
+                .content(objectMapper.writeValueAsString(entryRequest1))
         )
             .andExpect(status().isOk)
 
         mockMvc.perform(
             post("/api/mood")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(entry2))
+                .content(objectMapper.writeValueAsString(entryRequest2))
         )
             .andExpect(status().isOk)
 
@@ -78,8 +80,7 @@ class MoodJournalControllerIT @Autowired constructor(
 
     @Test
     fun `should retrieve mood entry by ID`() {
-        val entry = MoodEntry(
-            id = 0L,
+        val request = MoodEntryRequest(
             moodLevel = 5,
             tags = listOf("happy"),
             comment = "Feeling good"
@@ -88,7 +89,7 @@ class MoodJournalControllerIT @Autowired constructor(
         val savedEntry = mockMvc.perform(
             post("/api/mood")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(entry))
+                .content(objectMapper.writeValueAsString(request))
         )
             .andExpect(status().isOk)
             .andReturn()
@@ -100,5 +101,13 @@ class MoodJournalControllerIT @Autowired constructor(
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id", `is`(savedEntryId.toInt())))
             .andExpect(jsonPath("$.moodLevel", `is`(5)))
+            .andExpect(jsonPath("$.tags", hasSize<Any>(1)))
+            .andExpect(jsonPath("$.comment", `is`("Feeling good")))
+    }
+
+    @Test
+    fun `should return 404 for non-existent mood entry`() {
+        mockMvc.perform(get("/api/mood/999"))
+            .andExpect(status().isNotFound)
     }
 }

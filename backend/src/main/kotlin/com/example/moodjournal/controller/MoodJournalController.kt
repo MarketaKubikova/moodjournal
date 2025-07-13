@@ -1,6 +1,7 @@
 package com.example.moodjournal.controller
 
-import com.example.moodjournal.model.MoodEntry
+import com.example.moodjournal.dto.MoodEntryRequest
+import com.example.moodjournal.dto.MoodEntryResponse
 import com.example.moodjournal.service.MoodJournalService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,16 +18,16 @@ class MoodJournalController(
 ) {
 
     @PostMapping
-    fun addMood(@RequestBody entry: MoodEntry): ResponseEntity<MoodEntry> {
+    fun addMood(@RequestBody entry: MoodEntryRequest): ResponseEntity<MoodEntryResponse> {
         val saved = service.addEntry(entry)
         return ResponseEntity.ok(saved)
     }
 
     @GetMapping
-    fun getAll(): List<MoodEntry> = service.getAllMoodEntries()
+    fun getAll(): List<MoodEntryResponse> = service.getAllMoodEntries()
 
     @GetMapping("/{id}")
-    fun getById(@PathVariable id: Long): ResponseEntity<MoodEntry> =
+    fun getById(@PathVariable id: Long): ResponseEntity<MoodEntryResponse> =
         service.getMoodEntryById(id)?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
 }
